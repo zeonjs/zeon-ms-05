@@ -1,0 +1,22 @@
+{
+  "name": "zeon-ms-05",
+  "version": "0.0.0",
+  "description": "MS-05 Zaku",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zeonjs/zeon-ms-05.git"
+  },
+  "keywords": [
+    "zeon"
+  ],
+  "author": "Zhen",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zeonjs/zeon-ms-05/issues"
+  },
+  "homepage": "https://github.com/zeonjs/zeon-ms-05#readme"
+}
