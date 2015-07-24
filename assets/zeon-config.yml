@@ -1,0 +1,37 @@
+# server
+server:
+  port: 8080
+
+# dir
+dir:
+  # static file dir
+  # t1: path string
+  # t2: path array
+  # t3: path object, [KEY] - url, [VALUE] - file path
+  static: /static
+  js: /static/js
+  css: /static/css
+  sass: /static/sass
+  page: /page
+  layout: /module/_layouts
+  partial: /module/_partials
+
+# engine
+engine:
+  template: swig
+  # can be css | sass | compass | less | stylus
+  css: sass
+
+# proxy option
+proxy:
+  enable: false
+  option:
+    - origin: /foo/bar/1
+      target: http://foo/bar/1
+      method: all
+    - origin: /foo/bar/1
+      target: http://foo/bar/1
+      method: post
+
+# ms
+MS: MS-05

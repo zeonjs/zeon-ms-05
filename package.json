@@ -2,7 +2,7 @@
   "name": "zeon-ms-05",
   "version": "0.0.0",
   "description": "MS-05 Zaku",
-  "main": "index.js",
+  "main": "zaku.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -18,5 +18,9 @@
   "bugs": {
     "url": "https://github.com/zeonjs/zeon-ms-05/issues"
   },
-  "homepage": "https://github.com/zeonjs/zeon-ms-05#readme"
+  "homepage": "https://github.com/zeonjs/zeon-ms-05#readme",
+  "dependencies": {
+    "chalk": "^1.1.0",
+    "fs-extra": "^0.22.1"
+  }
 }
