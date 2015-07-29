@@ -8,13 +8,18 @@ dir:
   # t1: path string
   # t2: path array
   # t3: path object, [KEY] - url, [VALUE] - file path
-  static: /static
-  js: /static/js
-  css: /static/css
-  sass: /static/sass
-  page: /page
-  layout: /module/_layouts
-  partial: /module/_partials
+  # static: /static
+  # page: /page
+  common: /common
+  module: /module
+  lib: /lib
+  component: /component
+  layout: /common/_layouts
+  partial: /common/_partials
+
+layout:
+  enable: true
+  default: layout
 
 # engine
 engine:

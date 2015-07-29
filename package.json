@@ -21,6 +21,8 @@
   "homepage": "https://github.com/zeonjs/zeon-ms-05#readme",
   "dependencies": {
     "chalk": "^1.1.0",
-    "fs-extra": "^0.22.1"
+    "fs-extra": "^0.22.1",
+    "swig": "^1.4.2",
+    "zeon-front-matter": "*"
   }
 }
