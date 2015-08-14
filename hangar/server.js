@@ -20,6 +20,11 @@ var URI = {
 exports = module.exports = function (config) {
   var baseDir = this.base_dir || '';
   var config = config || {};
+  config.dir._root = baseDir;
+  config.dir._common = path.join(config.dir._root, config.dir.common);
+  config.dir._module = path.join(config.dir._root, config.dir.module);
+  config.dir._lib = path.join(config.dir._root, config.dir.lib);
+  config.dir._component= path.join(config.dir._root, config.dir.component);
 
   // set URI test
   if (config.dir && config.dir.lib)
