@@ -8,9 +8,6 @@ var crypto = require('crypto');
 var fm     = require('zeon-front-matter');
 var swig   = require('swig');
 
-// .cache
-var Templates = {};
-
 var reg = {
   // sectuib
   section: /(<!--\[section (\S+?)\]\[\/section\]-->)|(<!--\[section (\S+?)\]-->[\s\S]*?<!--\[\/section\]-->)/ig,
@@ -25,7 +22,7 @@ var reg = {
   // 匹配script标签
   js: /(?:[^>\n\r]*)(<script[^>]*>(?:[\s\S]*?)<\/script\s*>)[\n\r]*/ig,
   // 匹配js文件路径
-  jsPath: /^<script[^>]+src=(?:"|')\s*(\S+)\s*(?:"|')/i,
+  jsPath: /^(?:[^>\n\r]*)<script[^>]+src=(?:"|')\s*(\S+)\s*(?:"|')/i,
   // 匹配js文件名
   jsFile: /(?:[^"' >\/]+)\.js(?=["'?])/i
 }
@@ -34,247 +31,33 @@ exports.moduleHTML = function (filepath) {
   var baseDir = this.base_dir || '';
   var config = this.user_option || {};
 
-  var pageDir = path.parse(filepath).dir;
-  var pageData = pageRender(filepath, config);
-
-  // read file content
-  // var fileContent = fs.readFileSync(filepath, 'utf-8');
-
-  // get data
-  // var data = fm.parse(fileContent);
+  // get page content
+  var fileContent = fs.readFileSync(filepath, 'utf-8');
+  var page_data = fm.parse(fileContent);
+  var page_content = page_data._content;
 
   // layout
   var layout = false;
-
-  if (pageData.fm.hasOwnProperty('layout')) {
-    layout = data.layout;
+  if (page_data.hasOwnProperty('layout')) {
+    layout = page_data.layout;
   } else if (config && config.layout && config.layout.default) {
     layout = config.layout.default;
   }
 
   // if no layout, just render html
-  if (!config.layout.enable || !layout) return pageData.content;
+  if (!config.layout.enable || !layout) return page_content;
 
   // has layout
   var layoutPath = path.join(baseDir, config.dir.layout, layout + '.html');
 
   if (fs.existsSync(layoutPath)) {
-    var layoutDir = path.join(config.dir._root, config.dir.layout);
-    var layoutData = layoutRender(layoutPath, config);
-    _layoutRenderer(layoutPath, config);
-    // var layoutCode = path.join(baseDir, encodeURIComponent(layoutPath));
-
-
-    // layout init
-    // if (true/*!Templates[layoutCode]*/) {
-    //   var layoutContent = fs.readFileSync(layoutPath, 'utf-8');
-
-    //   var template = '';
-
-    //   // section
-    //   template = layoutContent.replace(reg.section, function () {
-    //     var type = arguments[2] || arguments[4];
-    //     return '{% block ' + type + ' %}{% endblock %}'
-    //   });
-
-    //   Templates[layoutCode] = template;
-    //   swig.setDefaults({ loader: swig.loaders.memory(Templates) });
-    // }
-
-    // module content
-    // var originContent = data._content;
-    var moduleDate = {};
-    var layoutCode = path.join(baseDir, encodeURIComponent(layoutData.absolutePath));
-    var moduleContent = '{% extends "' + layoutCode + '" %}';
-    // css
-    moduleDate.css = [];
-    var cssMD5 = _.uniq(layoutData.css.md5.concat(pageData.css.md5));
-    cssMD5.map(function (item) {
-      var curData = pageData.css.list[item] || layoutData.css.list[item];
-      if (curData.type === 0) {
-        moduleDate.css.push(curData.content);
-      } else {
-        var cssRelative = path.relative(pageDir, curData.content).replace(/\\/ig, '/');
-        moduleDate.css.push(util.format('<link rel="stylesheet" href="%s">', cssRelative));
-      }
-    });
-    moduleContent += '{% block style %}' + moduleDate.css.join('\n') + '{% endblock %}';
-
-    // js
-    moduleDate.js = [];
-    var jsMD5 = _.uniq(layoutData.js.md5.concat(pageData.js.md5));
-    jsMD5.map(function (item) {
-      var curData = pageData.js.list[item] || layoutData.js.list[item];
-      if (curData.type === 0) {
-        moduleDate.js.push(curData.content);
-      } else {
-        var jsRelative = path.relative(pageDir, curData.content).replace(/\\/ig, '/');
-        moduleDate.js.push(util.format('<script src="%s"></script>', jsRelative));
-      }
-    });
-    moduleContent += '{% block script %}' + moduleDate.js.join('\n') + '{% endblock %}';
-
-    // body
-    var bodyContent = pageData.content;
-    bodyContent = bodyContent.replace(/^<body>/ig, '').replace(/<\/body>$/ig, '');
-    moduleContent += '{% block content %}' + bodyContent + '{% endblock %}';
-
-    var content = swig.render(moduleContent,{
-      filename: path.join(config.dir._root, encodeURIComponent(filepath)),
-      loader: swig.loaders.memory({
-        layoutCode: layoutData.template
-      })
-    });
-
-
-    return content;
-
+    var layout_data = _layoutRenderer(layoutPath, config);
+    return _pageRendererWithLayout(filepath, page_content, layout_data, config);
   } else {
-    return pageData.content;
+    return page_content;
   }
+
 };
-
-// generator templete
-function layoutRender (layoutPath, config) {
-  var data = {
-    content: '',
-    template: '',
-    css: {
-      md5: [],
-      list: {}
-    },
-    js: {
-      md5: [],
-      list: {}
-    },
-    absolutePath: layoutPath
-  };
-
-  var layoutFolder = path.join(config.dir._root, config.dir.layout);
-
-  data.content = data.template = fs.readFileSync(layoutPath, 'utf-8');
-
-  // section
-  data.template = data.template.replace(reg.section, function () {
-    var type = arguments[2] || arguments[4];
-    return '{% block ' + type + ' %}{% endblock %}'
-  });
-
-  // css
-  var cssData = formatCss(data.template.match(reg.css), layoutFolder);
-  if (cssData) data.css = cssData;
-  data.template.replace(reg.css, '');
-
-  // js
-  var jsData = formatJs(data.template.match(reg.js), layoutFolder);
-  if (jsData) data.js = jsData;
-  data.template.replace(reg.js, '');
-
-  return data;
-}
-// render page
-function pageRender (pagePath, config) {
-  var data = {
-    content: '',
-    template: '',
-    css: {
-      md5: [],
-      list: {}
-    },
-    js: {
-      md5: [],
-      list: {}
-    },
-    body: '',
-    absolutePath: pagePath,
-    fm: {}
-  };
-  var _temp = '';
-  var pathData = path.parse(pagePath);
-
-
-  var fileContent = fs.readFileSync(pagePath, 'utf-8');
-  data.fm = fm.parse(fileContent);
-  data.content = _temp = data.fm._content;
-
-  // css
-  var cssData = formatCss(_temp.match(reg.css), pathData.dir);
-  if (cssData) data.css = cssData;
-  _temp.replace(reg.css, '');
-
-  // js
-  var jsData = formatJs(_temp.match(reg.js), pathData.dir);
-  if (jsData) data.js = jsData;
-  _temp.replace(reg.js, '');
-
-  // body
-  _temp = _temp.replace(reg.body, function () {
-    data.content = arguments[1];
-    return '';
-  });
-
-  return data;
-}
-
-// format content
-function formatCss (cssList, basePath) {
-  var data = {
-    md5: [],
-    list: {}
-  }
-
-  // loop
-  for (var i in cssList) {
-    var curItem = cssList[i];
-    var curData = {};
-    var curHash = '';
-
-    if (reg.cssPath.test(curItem)) {
-      // 外部样式
-      curData.type = 1;
-      curData.content = path.join(basePath, curItem.match(reg.cssPath)[1]);
-    } else {
-      // 内部样式
-      curData.type = 0;
-      curData.content = curItem;
-    }
-    curHash = getHash(curData.content);
-
-    data.md5.push(curHash);
-    data.list[curHash] = curData;
-  }
-
-  return data;
-}
-function formatJs (jsList, basePath) {
-  var data = {
-    md5: [],
-    list: {}
-  }
-
-  // loop
-  for (var i in jsList) {
-    var curItem = jsList[i];
-    var curData = {};
-    var curHash = '';
-
-    if (reg.jsPath.test(curItem)) {
-      // outside
-      curData.type = 1;
-      curData.content = path.join(basePath, curItem.match(reg.jsPath)[1]);
-    } else {
-      // inside
-      curData.type = 0;
-      curData.content = curItem;
-    }
-    curHash = getHash(curData.content);
-
-    data.md5.push(curHash);
-    data.list[curHash] = curData;
-  }
-  // console.log(data);
-  return data;
-}
 
 
 //==============================================================================================
@@ -369,12 +152,86 @@ function _layoutRenderer (layout_path, config) {
     return result;
   });
 
-  console.log(data.template);
   return data;
 }
 
 // 页面渲染
-function _pageRenderer (page_path, config) {
+function _pageRendererWithLayout (page_path, page_content, layout_data, config) {
+  var path_parse = path.parse(page_path);
+  var data = '';
+  var temp = page_content;
+
+  // css
+  var css_data = [];
+  temp = temp.replace(reg.css, function () {
+    if (reg.cssPath.test(arguments[1])) {
+      // 外部样式
+      var relative_path = arguments[0].match(reg.cssPath)[1];
+      var absolute_path = path.join(path_parse.dir, relative_path);
+
+      if (!_.includes(layout_data.css.path, absolute_path)) {
+        var root_path = setUrlRootParam(absolute_path, config);
+        css_data.push(arguments[0].replace(relative_path, root_path));
+      }
+
+    } else {
+      // 内部样式
+      css_data.push(arguments[0]);
+    }
+    return '';
+  });
+  data += '{% block style %}\n' + css_data.join('') + '{% endblock %}\n';
+
+  // js
+  var js_data = [];
+  temp = temp.replace(reg.js, function () {
+    if (reg.jsPath.test(arguments[1])) {
+      // 外部样式
+      var relative_path = arguments[0].match(reg.jsPath)[1];
+      var absolute_path = path.join(path_parse.dir, relative_path);
+
+      if (!_.includes(layout_data.js.path, absolute_path)) {
+        var root_path = setUrlRootParam(absolute_path, config);
+        js_data.push(arguments[0].replace(relative_path, root_path));
+      }
+
+    } else {
+      // 内部样式
+      js_data.push(arguments[0]);
+    }
+    return '';
+  });
+  data += '{% block script %}\n' + js_data.join('') + '{% endblock %}\n';
+
+  // body
+  var body_content = temp.match(reg.body)[0];
+  body_content = body_content.replace(/^<body>/ig, '').replace(/<\/body>$/ig, '');
+  data += '{% block content %}\n' + body_content + '\n{% endblock %}\n';
+
+  // swig render
+  var layout_code = path.join(config.dir._root, encodeURIComponent(layout_data.absolute_path));
+
+  data = '{% extends "' + layout_code + '" %}\n' + data;
+
+  var template = {};
+  template[layout_code] = layout_data.template;
+  swig.setDefaults({ loader: swig.loaders.memory(template) });
+
+  var page_relative_path = path.relative(path_parse.dir, config.dir._module);
+  page_relative_path == '' ? page_relative_path = '.' : null;
+  page_relative_path = page_relative_path.replace(/\\/ig, '/');
+
+  var content = swig.render(data, {
+    varControls: ['{$', '$}'],
+    locals: {
+      _root: page_relative_path
+    },
+    filename: path.join(config.dir._root, encodeURIComponent(page_path))
+  });
+
+  console.log(data);
+
+  return content;
 }
 
 //==============================================================================================
@@ -399,7 +256,7 @@ function setUrlRootParam (target_path, config) {
   else {
     return target_path;
   }
-  return '{{_root}}' + file_uri;
+  return '{$_root$}' + file_uri;
 }
 
 function getHash (data) {
