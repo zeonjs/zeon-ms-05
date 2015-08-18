@@ -37,7 +37,7 @@ exports = module.exports = function (config) {
 
   return function ( pathname ) {
 
-    var extname = path.extname(pathname);
+    var extname = path.extname(pathname).toLocaleLowerCase();
     var filepath = '';
 
     if (extname === '.html') { // html
@@ -45,7 +45,7 @@ exports = module.exports = function (config) {
       filepath = path.join(modulePath, pathname);
 
       if (fs.existsSync(filepath))
-        return require('./renderer').moduleHTML.call({
+        return require('./renderer').renderHTML.call({
           base_dir: baseDir,
           user_option: config
         }, filepath);

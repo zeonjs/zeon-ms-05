@@ -12,7 +12,7 @@ var reg = {
   // sectuib
   section: /(<!--\[section (\S+?)\]\[\/section\]-->)|(<!--\[section (\S+?)\]-->[\s\S]*?<!--\[\/section\]-->)/ig,
   // html body
-  body: /<body>([\s\S]*)<\/body>/ig,
+  body: /<body[^>]*?>([\s\S]*)<\/body>/ig,
   // 匹配link:css标签以及style标签
   css: /(?:[^>\n\r]*)(<link\s*.*href=["'].*\.s?css["'?].*\/?>|<style[^>]*>(?:[\S\s]*?)<\/style>)[\n\r]*/ig,
   // 匹配css文件路径
@@ -27,7 +27,7 @@ var reg = {
   jsFile: /(?:[^"' >\/]+)\.js(?=["'?])/i
 }
 
-exports.moduleHTML = function (filepath) {
+exports.renderHTML = function (filepath) {
   var baseDir = this.base_dir || '';
   var config = this.user_option || {};
 
@@ -51,8 +51,8 @@ exports.moduleHTML = function (filepath) {
   var layoutPath = path.join(baseDir, config.dir.layout, layout + '.html');
 
   if (fs.existsSync(layoutPath)) {
-    var layout_data = _layoutRenderer(layoutPath, config);
-    return _pageRendererWithLayout(filepath, page_content, layout_data, config);
+    var layout_data = layoutRenderer(layoutPath, config);
+    return pageRendererWithLayout(filepath, page_content, layout_data, config);
   } else {
     return page_content;
   }
@@ -63,7 +63,7 @@ exports.moduleHTML = function (filepath) {
 //==============================================================================================
 
 // 模板渲染
-function _layoutRenderer (layout_path, config) {
+function layoutRenderer (layout_path, config) {
   // 数据对象
   var data = {
     content: '',
@@ -156,7 +156,7 @@ function _layoutRenderer (layout_path, config) {
 }
 
 // 页面渲染
-function _pageRendererWithLayout (page_path, page_content, layout_data, config) {
+function pageRendererWithLayout (page_path, page_content, layout_data, config) {
   var path_parse = path.parse(page_path);
   var data = '';
   var temp = page_content;
@@ -215,6 +215,7 @@ function _pageRendererWithLayout (page_path, page_content, layout_data, config) 
 
   var template = {};
   template[layout_code] = layout_data.template;
+  swig.invalidateCache();
   swig.setDefaults({ loader: swig.loaders.memory(template) });
 
   var page_relative_path = path.relative(path_parse.dir, config.dir._module);
@@ -228,8 +229,6 @@ function _pageRendererWithLayout (page_path, page_content, layout_data, config) 
     },
     filename: path.join(config.dir._root, encodeURIComponent(page_path))
   });
-
-  console.log(data);
 
   return content;
 }
