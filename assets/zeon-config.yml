@@ -10,12 +10,12 @@ dir:
   # t3: path object, [KEY] - url, [VALUE] - file path
   # static: /static
   # page: /page
-  common: /common
-  module: /module
-  lib: /lib
-  component: /component
-  layout: /common/_layouts
-  partial: /common/_partials
+  common: ./common
+  module: ./module
+  lib: ./lib
+  component: ./component
+  layout: ./common/_layouts
+  partial: ./common/_partials
 
 layout:
   enable: true

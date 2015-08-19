@@ -13,7 +13,9 @@
   "keywords": [
     "zeon"
   ],
-  "author": "Zhen",
+  "author": {
+    "name": "Zhen"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/zeonjs/zeon-ms-05/issues"
@@ -24,6 +26,33 @@
     "fs-extra": "^0.22.1",
     "lodash": "^3.10.0",
     "swig": "^1.4.2",
+	"yamljs":"*",
     "zeon-front-matter": "*"
-  }
+  },
+  "gitHead": "bd8ff816d8245e6740b9d73b147458415ad9a8a9",
+  "_id": "zeon-ms-05@0.0.2",
+  "_shasum": "b045e6ddbe0a4f963701494089c4a50ce3002d36",
+  "_from": "zeon-ms-05@*",
+  "_npmVersion": "2.11.3",
+  "_nodeVersion": "0.12.7",
+  "_npmUser": {
+    "name": "zhen",
+    "email": "i@thezhen.me"
+  },
+  "dist": {
+    "shasum": "b045e6ddbe0a4f963701494089c4a50ce3002d36",
+    "size": 4942,
+    "noattachment": false,
+    "tarball": "http://registry.npm.taobao.org/zeon-ms-05/download/zeon-ms-05-0.0.2.tgz"
+  },
+  "maintainers": [
+    {
+      "name": "zhen",
+      "email": "i@thezhen.me"
+    }
+  ],
+  "directories": {},
+  "publish_time": 1439948490578,
+  "_cnpm_publish_time": 1439948490578,
+  "_resolved": "https://registry.npm.taobao.org/zeon-ms-05/download/zeon-ms-05-0.0.2.tgz"
 }
