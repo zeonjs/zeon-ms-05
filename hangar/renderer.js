@@ -27,6 +27,11 @@ var reg = {
   jsFile: /(?:[^"' >\/]+)\.js(?=["'?])/i
 }
 
+/**
+ * 渲染页面
+ * @param  {string} filepath 页面路径
+ * @return {string}          页面内容
+ */
 exports.renderHTML = function (filepath) {
   var baseDir = this.base_dir || '';
   var config = this.user_option || {};
