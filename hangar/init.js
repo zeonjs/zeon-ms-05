@@ -12,6 +12,12 @@ exports = module.exports = function (args) {
 
   fs.copy(assetDir, baseDir, function (err) {
     if (err) return console.error(err)
+  	// 遍历生成目录
+  	for(var value in userOption.dir){
+  		fs.emptyDir(dirs[value],function(err){
+  			if (err) console.log('# ' + chalk.red(err));
+  		});
+    }
     console.log('# ' + chalk.green('MS-05 Zaku') + ' is init.');
   });
 
