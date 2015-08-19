@@ -24,7 +24,10 @@ var reg = {
   // 匹配js文件路径
   jsPath: /^(?:[^>\n\r]*)<script[^>]+src=(?:"|')\s*(\S+)\s*(?:"|')/i,
   // 匹配js文件名
-  jsFile: /(?:[^"' >\/]+)\.js(?=["'?])/i
+  jsFile: /(?:[^"' >\/]+)\.js(?=["'?])/i,
+  // img
+  img: /<img\s*.*src=["'].*\.(jpg|png|gif|bmp|jpeg|ico)["'?].*\/?>/ig,
+  imgPath: /src=(?:"|')?([^"' >]+)(?:"|')?/i
 }
 
 /**
@@ -95,6 +98,14 @@ function layoutRenderer (layout_path, config) {
   data.template = data.template.replace(reg.section, function () {
     var type = arguments[2] || arguments[4];
     return '{% block ' + type + ' %}{% endblock %}'
+  });
+
+  // 替换img
+  data.template = data.template.replace(reg.img, function () {
+    var relative_path = arguments[0].match(reg.imgPath)[1];
+    var absolute_path = path.join(config.dir._layout, relative_path);
+    var path_with_root = setUrlRootParam(absolute_path, config);
+    return arguments[0].replace(relative_path, path_with_root);
   });
 
   // 提取css信息

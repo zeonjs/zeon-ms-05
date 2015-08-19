@@ -1,6 +1,6 @@
 # server
 server:
-  port: 8080
+  port: 83
 
 # dir
 dir:
@@ -30,6 +30,9 @@ engine:
 # proxy option
 proxy:
   enable: false
+  prefix: /
+  host: 192.168.70.206
+  port: 82
   option:
     - origin: /foo/bar/1
       target: http://foo/bar/1

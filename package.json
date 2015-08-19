@@ -1,6 +1,6 @@
 {
   "name": "zeon-ms-05",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "MS-05 Zaku",
   "main": "zaku.js",
   "scripts": {
@@ -23,7 +23,8 @@
     "chalk": "^1.1.0",
     "fs-extra": "^0.22.1",
     "lodash": "^3.10.0",
+    "node-sass": "^3.0.0",
     "swig": "^1.4.2",
-    "zeon-front-matter": "*"
+    "zeon-front-matter": "latest"
   }
 }
