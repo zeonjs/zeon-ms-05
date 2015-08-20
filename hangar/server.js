@@ -53,18 +53,24 @@ exports = module.exports = function (config) {
       var sassPath = fsHelper.getFilepath(pathname.replace(/\.css/ig, '.scss'), config);
       // is sass
       if (sassPath) {
-        filepath = sassPath.replace(/\.scss/ig, '.css');
+        // filepath = sassPath.replace(/\.scss/ig, '.css');
+        var sass_data = fs.readFileSync(sassPath, 'utf-8');
         var css_data = sass.renderSync({
-          file: sassPath,
-          outFile: filepath,
-          sourceMap: true
+          // outFile: filepath,
+          // sourceMap: true,
+          file: sassPath
+          // data: sass_data,
+          // outputStyle: 'compressed',
+          // includePaths: path.parse(sassPath).dir
         }, function (err, result) {
           console.log(err);
         });
 
 
-        fs.writeFileSync(filepath, css_data.css, 'utf-8');
-        fs.writeFileSync(filepath + '.map', css_data.map, 'utf-8');
+        // fs.writeFileSync(filepath, css_data.css, 'utf-8');
+        // fs.writeFileSync(filepath + '.map', css_data.map, 'utf-8');
+        var css_content = css_data.css.toString('utf-8');
+        return css_content;
       }
     }
     // else if (EXTNAME.js.test(extname)) {

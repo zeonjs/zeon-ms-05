@@ -6,7 +6,10 @@ var path   = require('path');
 var fs     = require('fs');
 var crypto = require('crypto');
 var fm     = require('zeon-front-matter');
+var fsHelper = require('./helper/file');
 var swig   = require('swig');
+
+swig.setDefaults({ varControls: ['{$', '$}'] });
 
 var reg = {
   // sectuib
@@ -103,7 +106,7 @@ function layoutRenderer (layout_path, config) {
   // 替换img
   data.template = data.template.replace(reg.img, function () {
     var relative_path = arguments[0].match(reg.imgPath)[1];
-    var absolute_path = path.join(config.dir._layout, relative_path);
+    var absolute_path = fsHelper.getFilepath(relative_path, config, config.dir._layout);
     var path_with_root = setUrlRootParam(absolute_path, config);
     return arguments[0].replace(relative_path, path_with_root);
   });
@@ -239,7 +242,6 @@ function pageRendererWithLayout (page_path, page_content, layout_data, config) {
   page_relative_path = page_relative_path.replace(/\\/ig, '/');
 
   var content = swig.render(data, {
-    varControls: ['{$', '$}'],
     locals: {
       _root: page_relative_path
     },
