@@ -6,7 +6,7 @@ var path   = require('path');
 var fs     = require('fs');
 var crypto = require('crypto');
 var fm     = require('zeon-front-matter');
-var fsHelper = require('./helper/file');
+var fsHelper = require('../helper/file');
 var swig   = require('swig');
 
 swig.setDefaults({ varControls: ['{$', '$}'] });
@@ -38,7 +38,7 @@ var reg = {
  * @param  {string} filepath 页面路径
  * @return {string}          页面内容
  */
-exports.renderHTML = function (filepath) {
+var renderHTML = function (filepath) {
   var baseDir = this.base_dir || '';
   var config = this.user_option || {};
 
@@ -69,6 +69,7 @@ exports.renderHTML = function (filepath) {
   }
 
 };
+module.exports = exports = renderHTML;
 
 
 //==============================================================================================

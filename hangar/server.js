@@ -3,7 +3,7 @@
 var path = require('path');
 var fs = require('fs');
 var fsHelper = require('./helper/file');
-var sass = require('node-sass');
+// var sass = require('node-sass');
 
 // var config = {};
 // var baseDir = '';
@@ -40,7 +40,7 @@ exports = module.exports = function (config) {
       filepath = path.join(config.dir._module, pathname);
 
       if (fs.existsSync(filepath))
-        return require('./renderer').renderHTML.call({
+        return require('./renderer/html').call({
           base_dir: baseDir,
           user_option: config
         }, filepath);
@@ -50,28 +50,28 @@ exports = module.exports = function (config) {
       if (fs.existsSync(filepath)) return filepath;
     }
     else if (extname === '.css') { // css
-      var sassPath = fsHelper.getFilepath(pathname.replace(/\.css/ig, '.scss'), config);
-      // is sass
-      if (sassPath) {
-        // filepath = sassPath.replace(/\.scss/ig, '.css');
-        var sass_data = fs.readFileSync(sassPath, 'utf-8');
-        var css_data = sass.renderSync({
-          // outFile: filepath,
-          // sourceMap: true,
-          file: sassPath
-          // data: sass_data,
-          // outputStyle: 'compressed',
-          // includePaths: path.parse(sassPath).dir
-        }, function (err, result) {
-          console.log(err);
-        });
+      // var sassPath = fsHelper.getFilepath(pathname.replace(/\.css/ig, '.scss'), config);
+      // // is sass
+      // if (sassPath) {
+      //   // filepath = sassPath.replace(/\.scss/ig, '.css');
+      //   var sass_data = fs.readFileSync(sassPath, 'utf-8');
+      //   var css_data = sass.renderSync({
+      //     // outFile: filepath,
+      //     // sourceMap: true,
+      //     file: sassPath
+      //     // data: sass_data,
+      //     // outputStyle: 'compressed',
+      //     // includePaths: path.parse(sassPath).dir
+      //   }, function (err, result) {
+      //     console.log(err);
+      //   });
 
 
-        // fs.writeFileSync(filepath, css_data.css, 'utf-8');
-        // fs.writeFileSync(filepath + '.map', css_data.map, 'utf-8');
-        var css_content = css_data.css.toString('utf-8');
-        return css_content;
-      }
+      //   // fs.writeFileSync(filepath, css_data.css, 'utf-8');
+      //   // fs.writeFileSync(filepath + '.map', css_data.map, 'utf-8');
+      //   var css_content = css_data.css.toString('utf-8');
+      //   return css_content;
+      // }
     }
     // else if (EXTNAME.js.test(extname)) {
     //   // js
