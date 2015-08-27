@@ -3,7 +3,15 @@
 var path = require('path');
 var fs = require('fs');
 var fsHelper = require('./helper/file');
-// var sass = require('node-sass');
+
+var sass = (function () {
+  try {
+    return require('node-sass');
+  } catch (ex) {
+    console.log('there is no [node-sass] module in your computer');
+    return null;
+  }
+})()
 
 // var config = {};
 // var baseDir = '';
@@ -35,7 +43,8 @@ exports = module.exports = function (config) {
     var extname = path.extname(pathname).toLocaleLowerCase();
     var filepath = '';
 
-    if (extname === '.html') { // html
+    // html
+    if (extname === '.html') {
       // module page
       filepath = path.join(config.dir._module, pathname);
 
@@ -49,58 +58,42 @@ exports = module.exports = function (config) {
       filepath = path.join(config.dir._common, pathname);
       if (fs.existsSync(filepath)) return filepath;
     }
-    else if (extname === '.css') { // css
-      // var sassPath = fsHelper.getFilepath(pathname.replace(/\.css/ig, '.scss'), config);
-      // // is sass
-      // if (sassPath) {
-      //   // filepath = sassPath.replace(/\.scss/ig, '.css');
-      //   var sass_data = fs.readFileSync(sassPath, 'utf-8');
-      //   var css_data = sass.renderSync({
-      //     // outFile: filepath,
-      //     // sourceMap: true,
-      //     file: sassPath
-      //     // data: sass_data,
-      //     // outputStyle: 'compressed',
-      //     // includePaths: path.parse(sassPath).dir
-      //   }, function (err, result) {
-      //     console.log(err);
-      //   });
+    // css
+    else if (extname === '.css') {
+      /*var css_content = require('./renderer/style').sync(pathname, config);
+      if (css_content) {
+        return css_content;
+      }*/
+      var sassPath = fsHelper.getFilepath(pathname.replace(/\.css/ig, '.scss'), config);
+      // is sass
+      if (sassPath && sass) {
+        // filepath = sassPath.replace(/\.scss/ig, '.css');
+        var sass_data = fs.readFileSync(sassPath, 'utf-8');
+        var css_data = sass.renderSync({
+          // outFile: filepath,
+          // sourceMap: true,
+          file: sassPath
+          // data: sass_data,
+          // outputStyle: 'compressed',
+          // includePaths: path.parse(sassPath).dir
+        }, function (err, result) {
+          console.log(err);
+        });
 
 
-      //   // fs.writeFileSync(filepath, css_data.css, 'utf-8');
-      //   // fs.writeFileSync(filepath + '.map', css_data.map, 'utf-8');
-      //   var css_content = css_data.css.toString('utf-8');
-      //   return css_content;
-      // }
+        // fs.writeFileSync(filepath, css_data.css, 'utf-8');
+        // fs.writeFileSync(filepath + '.map', css_data.map, 'utf-8');
+        var css_content = css_data.css.toString('utf-8');
+        return css_content;
+      }
     }
+    // js
     // else if (EXTNAME.js.test(extname)) {
-    //   // js
     // }
-    // else {
-    // }
+    else {
+    }
 
     filepath = fsHelper.getFilepath(pathname, config);
     return filepath;
-
-    // module file
-    // filepath = path.join(config.dir._module, pathname);
-    // if (fs.existsSync(filepath)) return filepath;
-
-    // // common file
-    // filepath = path.join(config.dir._common, pathname);
-    // if (fs.existsSync(filepath)) return filepath;
-
-    // // lib
-    // if (URI.lib.test(pathname)) {
-    //   filepath = path.join(config.dir._lib, pathname.replace(URI.lib, ''));
-    //   if (fs.existsSync(filepath)) return filepath;
-    // }
-    // // component
-    // if (URI.component.test(pathname)) {
-    //   filepath = path.join(config.dir._component, pathname.replace(URI.component, ''));
-    //   if (fs.existsSync(filepath)) return filepath;
-    // }
-
-    // return false;
   }
 };
