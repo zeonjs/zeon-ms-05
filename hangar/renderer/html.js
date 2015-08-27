@@ -1,19 +1,21 @@
 'use strict';
 
-var _      = require('lodash');
-var util   = require('util');
-var path   = require('path');
-var fs     = require('fs');
-var crypto = require('crypto');
-var fm     = require('zeon-front-matter');
+var _        = require('lodash');
+var path     = require('path');
+var fs       = require('fs');
+var util     = require('util');
+var crypto   = require('crypto');
+var swig     = require('swig');
+var fm       = require('zeon-front-matter');
 var fsHelper = require('../helper/file');
-var swig   = require('swig');
 
 swig.setDefaults({ varControls: ['{$', '$}'] });
 
 var reg = {
-  // sectuib
+  // section
   section: /(<!--\[section (\S+?)\]\[\/section\]-->)|(<!--\[section (\S+?)\]-->[\s\S]*?<!--\[\/section\]-->)/ig,
+  // include
+  include: /(<!--\[include (\S+?)\]\[\/include\]-->)|(<!--\[include (\S+?)\]-->[\s\S]*?<!--\[\/include\]-->)/ig,
   // html body
   body: /<body[^>]*?>([\s\S]*)<\/body>/ig,
   // 匹配link:css标签以及style标签
@@ -42,8 +44,12 @@ var renderHTML = function (filepath) {
   var baseDir = this.base_dir || '';
   var config = this.user_option || {};
 
+  var d = getPageData(filepath, config);
+
+  return getPageContent(d, config);
+
   // get page content
-  var fileContent = fs.readFileSync(filepath, 'utf-8');
+  var fileContent = fs.readFileSync(filepath, 'utf8');
   var page_data = fm.parse(fileContent);
   var page_content = page_data._content;
 
@@ -67,7 +73,6 @@ var renderHTML = function (filepath) {
   } else {
     return page_content;
   }
-
 };
 module.exports = exports = renderHTML;
 
@@ -96,7 +101,7 @@ function layoutRenderer (layout_path, config) {
   var path_parse = path.parse(layout_path);
 
   // 获取内容
-  data.content = data.template = fs.readFileSync(layout_path, 'utf-8');
+  data.content = data.template = fs.readFileSync(layout_path, 'utf8');
 
   // 替换section节点为swig block
   data.template = data.template.replace(reg.section, function () {
@@ -181,6 +186,13 @@ function pageRendererWithLayout (page_path, page_content, layout_data, config) {
   var data = '';
   var temp = page_content;
 
+  temp = temp.replace(reg.include, function () {
+    var relative_path = arguments[2] ;
+    var absolute_path = path.join(path_parse.dir, relative_path);
+    var partial_data = getPartialData(absolute_path, config);
+    return '';
+  });
+
   // css
   var css_data = [];
   temp = temp.replace(reg.css, function () {
@@ -252,8 +264,299 @@ function pageRendererWithLayout (page_path, page_content, layout_data, config) {
   return content;
 }
 
+function getPageContent (data, config) {
+  if (!data.layout) return data._content;
+
+  var path_parse = path.parse(data.path);
+
+  var temp = '';
+
+  // css
+  temp += '{% block style %}\n';
+  var css_data = unionDataId(data.layout.css, data.css);
+  for (var i = 0, l = css_data.length; i < l; i++) {
+    temp += css_data[i].content;
+  }
+  temp += '{% endblock %}\n';
+
+  // js
+  temp += '{% block script %}\n';
+  var js_data = unionDataId(data.layout.js, data.js);
+  for (var i = 0, l = js_data.length; i < l; i++) {
+    temp += js_data[i].content;
+  }
+  temp += '{% endblock %}\n';
+
+  // content
+  temp += '{% block content %}\n';
+  temp += data.content;
+  temp += '{% endblock %}\n';
+
+  // swig render
+  var layout_code = path.join(config.dir._root, encodeURIComponent(data.layout.id));
+  temp = '{% extends "' + layout_code + '" %}\n' + temp;
+
+  var template = {};
+  template[layout_code] = data.layout.template;
+  swig.invalidateCache();
+  swig.setDefaults({ loader: swig.loaders.memory(template) });
+
+  var page_relative_path = path.relative(path_parse.dir, config.dir._module);
+  page_relative_path == '' ? page_relative_path = '.' : null;
+  page_relative_path = page_relative_path.replace(/\\/ig, '/');
+
+  var content = swig.render(temp, {
+    locals: {
+      _root: page_relative_path
+    },
+    filename: path.join(config.dir._root, encodeURIComponent(data.path))
+  });
+
+  return content;
+}
+
 //==============================================================================================
 
+function getLayoutData (absolute_path, config) {
+  var data = {
+    id: absolute_path,
+    path: absolute_path,
+    template: '',
+    js: [],
+    css: [],
+    content: '',
+    _content: ''
+  };
+
+  var path_parse = path.parse(absolute_path);
+
+  // read file content
+  var temp = data.template = data._content = fs.readFileSync(absolute_path, 'utf8');
+
+
+  // 替换section节点为swig block
+  data.template = data.template.replace(reg.section, function () {
+    var type = arguments[2] || arguments[4];
+    return '{% block ' + type + ' %}{% endblock %}'
+  });
+
+  // css
+  data.template = data.template.replace(reg.css, function () {
+    var css_data = getStyleData(arguments[1], config, path_parse.dir);
+    if (css_data) {
+      data.css.push(css_data);
+    }
+    return css_data.content;
+  });
+
+  // js
+  data.template = data.template.replace(reg.js, function () {
+    var js_data = getScriptData(arguments[1], config, path_parse.dir);
+    if (js_data) {
+      data.js.push(js_data);
+    }
+    return js_data.content;
+  });
+
+  // body
+  data.content = getBodyData(temp);
+
+  return data;
+}
+
+function getPartialData (absolute_path, config) {
+  var data = {
+    id: absolute_path,
+    path: absolute_path,
+    js: [],
+    css: [],
+    content: '',
+    _content: ''
+  };
+
+  var path_parse = path.parse(absolute_path);
+
+  // read file content
+  var temp = data._content = fs.readFileSync(absolute_path, 'utf8');
+
+  // css
+  temp = temp.replace(reg.css, function () {
+    var css_data = getStyleData(arguments[1], config, path_parse.dir);
+    if (css_data) {
+      data.css.push(css_data);
+    }
+    return '';
+  });
+
+  // js
+  temp = temp.replace(reg.js, function () {
+    var js_data = getScriptData(arguments[1], config, path_parse.dir);
+    if (js_data) {
+      data.js.push(js_data);
+    }
+    return '';
+  });
+
+  // partial
+  temp = temp.replace(reg.include, function () {
+    var relative_path = arguments[2] ;
+    var absolute_path = path.join(path_parse.dir, relative_path);
+    var partial_data = getPartialData(absolute_path, config);
+
+    // data.js = data.js.concat(partial_data.js);
+    // data.css = data.css.concat(partial_data.css);
+
+    data.js = unionDataId(data.js, partial_data.js);
+    data.css = unionDataId(data.css, partial_data.css);
+
+    return partial_data.content;
+  });
+
+  // body
+  data.content = getBodyData(temp);
+
+  return data;
+}
+
+function getPageData (absolute_path, config) {
+  var data = {
+    id: absolute_path,
+    path: absolute_path,
+    layout: null,
+    js: [],
+    css: [],
+    content: '',
+    _content: ''
+  };
+
+  var path_parse = path.parse(absolute_path);
+
+  // read file content
+  var file_content = fs.readFileSync(absolute_path, 'utf8');
+
+  // layout
+  var page_data = fm.parse(file_content);
+  var temp = data._content = page_data._content;
+
+  // layout
+  var layout = false;
+  if (page_data.hasOwnProperty('layout')) {
+    layout = page_data.layout;
+  } else if (config && config.layout && config.layout.default) {
+    layout = config.layout.default;
+  }
+
+  // has layout
+  var layout_path = path.join(config.dir._layout, layout + '.html');
+
+  if (fs.existsSync(layout_path)) {
+    data.layout = getLayoutData(layout_path, config);
+  } else {
+    data.layout = false;
+  }
+
+  // css
+  temp = temp.replace(reg.css, function () {
+    var css_data = getStyleData(arguments[1], config, path_parse.dir);
+    if (css_data) {
+      data.css.push(css_data);
+    }
+    return '';
+  });
+
+  // js
+  temp = temp.replace(reg.js, function () {
+    var js_data = getScriptData(arguments[1], config, path_parse.dir);
+    if (js_data) {
+      data.js.push(js_data);
+    }
+    return '';
+  });
+
+  // partial
+  temp = temp.replace(reg.include, function () {
+    var relative_path = arguments[2] ;
+    var absolute_path = path.join(path_parse.dir, relative_path);
+    var partial_data = getPartialData(absolute_path, config);
+
+    // data.js = data.js.concat(partial_data.js);
+    // data.css = data.css.concat(partial_data.css);
+
+    data.js = unionDataId(data.js, partial_data.js);
+    data.css = unionDataId(data.css, partial_data.css);
+
+    return partial_data.content;
+  });
+
+  // body
+  data.content = getBodyData(temp);
+
+  return data;
+}
+
+//==============================================================================================
+
+function getStyleData (content, config, page_path) {
+  var data = {
+    id: '',
+    path: '',
+    content: '',
+    is_external: true
+  };
+
+  if (reg.cssPath.test(content)) {
+    data.is_external = true;
+
+    var relative_path = content.match(reg.cssPath)[1];
+    var absolute_path = data.path = path.join(page_path, relative_path);
+
+    data.id = getHash(absolute_path);
+    // data.content = content.replace(relative_path, setUrlRootParam(absolute_path, config));
+    data.content = '<link rel="stylesheet" href="' + setUrlRootParam(absolute_path, config) + '">';
+
+  } else {
+    data.is_external = false;
+
+    data.id = getHash(content);
+    data.content = content;
+  }
+
+  return data;
+}
+function getScriptData (content, config, page_path) {
+  var data = {
+    id: '',
+    path: '',
+    content: '',
+    is_external: true
+  };
+
+  if (reg.jsPath.test(content)) {
+    data.is_external = true;
+
+    var relative_path = content.match(reg.jsPath)[1];
+    var absolute_path = data.path = path.join(page_path, relative_path);
+
+    data.id = getHash(absolute_path);
+    // data.content = content.replace(relative_path, setUrlRootParam(absolute_path, config));
+    data.content = '<script src="' + setUrlRootParam(absolute_path, config) + '"></script>';
+
+  } else {
+    data.is_external = false;
+
+    data.id = getHash(content);
+    data.content = content;
+  }
+
+  return data;
+}
+function getBodyData (content) {
+  var body_content = content.match(reg.body)[0];
+  body_content = body_content.replace(/^<body>/ig, '').replace(/<\/body>$/ig, '');
+  return body_content;
+}
+
+//==============================================================================================
 
 // 添加root参数
 function setUrlRootParam (target_path, config) {
@@ -278,9 +581,46 @@ function setUrlRootParam (target_path, config) {
   return '{$_root$}' + file_uri;
 }
 
+// 过滤重复的id对象
+function unionDataId () {
+  var new_data = [];
+  if (arguments.length == 0) {
+    return [];
+  }
+  else if (arguments.length == 1) {
+    return arguments[0];
+  }
+  else {
+    var temp1 = arguments[0].concat();
+    var temp2 = arguments[1].concat();
+    var temp = [];
+    var ids = [];
+
+    for (var i = 0, l1 = temp1.length; i < l1; i++) {
+      ids.push(temp1[i].id);
+    }
+
+    for (var j = 0, l2 = temp2.length; j < l2; j++) {
+      if (_.indexOf(ids, temp2[j].id) == -1) {
+        temp.push(temp2[j]);
+        ids.push(temp2[j].id);
+      }
+    }
+
+    new_data = temp1.concat(temp);
+
+    var eventData = Array.prototype.slice.call(arguments, 2);
+    eventData.unshift(new_data);
+
+    new_data = unionDataId.apply(unionDataId, eventData);
+  }
+  return new_data;
+}
+
+// 获取内容MD5
 function getHash (data) {
   var md5sum = crypto.createHash('md5'),
     encoding = typeof data === 'string' ? 'utf8' : 'binary';
   md5sum.update(data, encoding);
   return md5sum.digest('hex');
-};
+}
