@@ -44,35 +44,9 @@ var renderHTML = function (filepath) {
   var baseDir = this.base_dir || '';
   var config = this.user_option || {};
 
-  var d = getPageData(filepath, config);
+  var data = getPageData(filepath, config);
 
-  return getPageContent(d, config);
-
-  // get page content
-  var fileContent = fs.readFileSync(filepath, 'utf8');
-  var page_data = fm.parse(fileContent);
-  var page_content = page_data._content;
-
-  // layout
-  var layout = false;
-  if (page_data.hasOwnProperty('layout')) {
-    layout = page_data.layout;
-  } else if (config && config.layout && config.layout.default) {
-    layout = config.layout.default;
-  }
-
-  // if no layout, just render html
-  if (!config.layout.enable || !layout) return page_content;
-
-  // has layout
-  var layoutPath = path.join(baseDir, config.dir.layout, layout + '.html');
-
-  if (fs.existsSync(layoutPath)) {
-    var layout_data = layoutRenderer(layoutPath, config);
-    return pageRendererWithLayout(filepath, page_content, layout_data, config);
-  } else {
-    return page_content;
-  }
+  return getPageContent(data, config);
 };
 module.exports = exports = renderHTML;
 
