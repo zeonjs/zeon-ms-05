@@ -8,7 +8,7 @@ var sass = (function () {
   try {
     return require('node-sass');
   } catch (ex) {
-    console.log('there is no [node-sass] module in your computer');
+    console.log('there is no [node-sass] module in your computer, for server module.');
     return null;
   }
 })()

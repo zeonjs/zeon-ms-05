@@ -598,3 +598,9 @@ function getHash (data) {
   md5sum.update(data, encoding);
   return md5sum.digest('hex');
 }
+
+// deploy
+function deploy (config) {
+  var dist_data = {};
+  // layout
+};

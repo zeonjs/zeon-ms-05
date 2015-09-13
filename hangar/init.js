@@ -14,7 +14,7 @@ exports = module.exports = function (args) {
     if (err) return console.error(err)
   	// 遍历生成目录
   	for(var value in userOption.dir){
-  		fs.emptyDir(dirs[value],function(err){
+  		fs.emptyDir(userOption.dir[value], function(err){
   			if (err) console.log('# ' + chalk.red(err));
   		});
     }

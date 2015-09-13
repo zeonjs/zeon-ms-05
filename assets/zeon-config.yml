@@ -16,6 +16,7 @@ dir:
   component: ./component
   layout: ./common/_layouts
   partial: ./common/_partials
+  deploy: ./.deploy
 
 layout:
   enable: true
