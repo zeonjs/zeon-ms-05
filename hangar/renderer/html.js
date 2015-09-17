@@ -315,7 +315,14 @@ function getStyleData (content, config, page_path) {
 
     data.id = getHash(absolute_path);
     // data.content = content.replace(relative_path, setUrlRootParam(absolute_path, config));
-    data.content = '<link rel="stylesheet" href="' + setUrlRootParam(absolute_path, config) + '">';
+
+    var uri = '';
+    if (config._deploy) {
+      uri = '{$_root$}' + config._deploy.style[absolute_path].uri;
+    } else {
+      uri = setUrlRootParam(absolute_path, config);
+    }
+    data.content = '<link rel="stylesheet" href="' + uri + '">';
 
   } else {
     data.is_external = false;
@@ -463,16 +470,6 @@ function deploy (config) {
     script: {}
   };
 
-  // layout
-  var arr_layout = fs.readdirSync(config.dir._layout);
-  arr_layout.forEach(function (item) {
-    var absolute_path = path.join(config.dir._layout, item);
-    var data = getLayoutData(absolute_path, config);
-
-    config._deploy.layout[absolute_path] = data;
-    // var parse = path.parse(absolute_path);
-  });
-
   // script
   console.log(chalk.yellow('> script file:'));
   var js_pattern = '{' + config.dir._common + ',' + config.dir._module + ',' + config.dir._component + ',' + config.dir._lib + '}/**/!(_*).js';
@@ -490,7 +487,25 @@ function deploy (config) {
   css_files.forEach(function (item) {
     item = path.join(item);
     var data = deployStyle(item, config);
-    config._deploy.script[item.replace(/\.scss$/i, '.css')] = data;
+    config._deploy.style[item.replace(/\.scss$/i, '.css')] = data;
+  });
+
+  // layout
+  var arr_layout = fs.readdirSync(config.dir._layout);
+  arr_layout.forEach(function (item) {
+    var absolute_path = path.join(config.dir._layout, item);
+    var data = getLayoutData(absolute_path, config);
+
+    config._deploy.layout[absolute_path] = data;
+    // var parse = path.parse(absolute_path);
+  });
+
+  // module
+  console.log(chalk.yellow('> page file:'));
+  var html_pattern = config.dir._module + '/**/!(_*).html';
+  var html_files = glob.sync(html_pattern, {});
+  html_files.forEach(function (item) {
+    console.log(item)
   });
     // console.log(config._deploy);
 };
