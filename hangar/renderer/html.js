@@ -1,11 +1,15 @@
 'use strict';
 
 var _        = require('lodash');
+var util     = require('util');
 var path     = require('path');
 var fs       = require('fs');
-var util     = require('util');
+var fsEx     = require('fs-extra');
+var walk     = require('walk');
 var crypto   = require('crypto');
 var swig     = require('swig');
+var glob     = require('glob');
+var chalk    = require('chalk');
 var fm       = require('zeon-front-matter');
 var fsHelper = require('../helper/file');
 
@@ -444,8 +448,136 @@ function getHash (data) {
   return md5sum.digest('hex');
 }
 
-// deploy
+// --- deploy -----------------------------------------------------------
 function deploy (config) {
-  var dist_data = {};
+  // init deploy
+  if (fs.existsSync(config.dir._deploy)) {
+    fsEx.removeSync(config.dir._deploy);
+  }
+  fsEx.mkdirsSync(config.dir._deploy);
+
+  // init data
+  config._deploy = {
+    layout: {},
+    style: {},
+    script: {}
+  };
+
   // layout
+  var arr_layout = fs.readdirSync(config.dir._layout);
+  arr_layout.forEach(function (item) {
+    var absolute_path = path.join(config.dir._layout, item);
+    var data = getLayoutData(absolute_path, config);
+
+    config._deploy.layout[absolute_path] = data;
+    // var parse = path.parse(absolute_path);
+  });
+
+  // script
+  console.log(chalk.yellow('> script file:'));
+  var js_pattern = '{' + config.dir._common + ',' + config.dir._module + ',' + config.dir._component + ',' + config.dir._lib + '}/**/!(_*).js';
+  var js_files = glob.sync(js_pattern, {});
+  js_files.forEach(function (item) {
+    item = path.join(item);
+    var data = deployScript(item, config);
+    config._deploy.script[item] = data;
+  });
+
+  // style
+  console.log(chalk.yellow('> style file:'));
+  var css_pattern = '{' + config.dir._common + ',' + config.dir._module + ',' + config.dir._component + ',' + config.dir._lib + '}/**/!(_*).{css,scss}';
+  var css_files = glob.sync(css_pattern, {});
+  css_files.forEach(function (item) {
+    item = path.join(item);
+    var data = deployStyle(item, config);
+    config._deploy.script[item.replace(/\.scss$/i, '.css')] = data;
+  });
+    // console.log(config._deploy);
 };
+exports.deploy = deploy;
+
+// var UglifyJS = require("uglify-js");
+function deployScript (absolute_path, config) {
+  // var result = UglifyJS.minify(absolute_path);
+  // var hash = getHash(result.code);
+  var result = fs.readFileSync(absolute_path, 'utf8');
+  var hash = getHash(result).substr(0,5);
+
+  var output_path = getDeployPath(absolute_path, config);
+  var output_parse = path.parse(output_path);
+  output_path = path.join(output_parse.dir, (output_parse.name + '-' + hash + output_parse.ext));
+
+  var uri = output_path.replace(config.dir._deploy, '').replace(/\\/ig, '/');
+
+  fsEx.outputFileSync(output_path, result);
+
+  console.log(chalk.gray('  ' + uri), chalk.blue(' -> '), chalk.green('done'));
+
+  return {
+    path: output_path,
+    uri: uri
+  }
+}
+
+var CleanCSS = require('clean-css');
+var sass = require('node-sass');
+function deployStyle (absolute_path, config) {
+  var result = '';
+  var file_ext = path.extname(absolute_path);
+
+  if (file_ext == '.css') {
+    result = fs.readFileSync(absolute_path, 'utf8');
+  } else if (file_ext == '.scss') {
+    var result = sass.renderSync({
+      file: absolute_path,
+      outputStyle: 'compressed'
+    }, function (err, result) {
+      console.log(err);
+    });
+    result = result.css.toString('utf-8')
+    absolute_path = absolute_path.replace(/\.scss$/i, '.css')
+  }
+  result = new CleanCSS({
+    keepSpecialComments: 0
+  }).minify(result).styles;
+
+  var hash = getHash(result).substr(0,5);
+
+  var output_path = getDeployPath(absolute_path, config);
+  var output_parse = path.parse(output_path);
+  output_path = path.join(output_parse.dir, (output_parse.name + '-' + hash + output_parse.ext));
+
+  var uri = output_path.replace(config.dir._deploy, '').replace(/\\/ig, '/');
+
+  fsEx.outputFileSync(output_path, result);
+
+  console.log(chalk.gray('  ' + uri), chalk.blue(' -> '), chalk.green('done'));
+
+  return {
+    path: output_path,
+    uri: uri
+  }
+}
+
+
+function getDeployPath (target_path, config) {
+  var file_uri = target_path;
+  if (typeof target_path != 'string') return target_path;
+  // 是否在common中
+  if (target_path.indexOf(config.dir._common) === 0) {
+    file_uri = target_path.replace(config.dir._common, '').replace(/\\/ig, '/');
+  }
+  else if (target_path.indexOf(config.dir._module) === 0) {
+    file_uri = target_path.replace(config.dir._module, '').replace(/\\/ig, '/');
+  }
+  else if (target_path.indexOf(config.dir._component) === 0) {
+    file_uri = '/component' + target_path.replace(config.dir._component, '').replace(/\\/ig, '/');
+  }
+  else if (target_path.indexOf(config.dir._lib) === 0) {
+    file_uri = '/lib' + target_path.replace(config.dir._lib, '').replace(/\\/ig, '/');
+  }
+  else {
+    return target_path;
+  }
+  return path.join(config.dir._deploy, file_uri);
+}
