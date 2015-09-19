@@ -39,6 +39,8 @@ var reg = {
   imgPath: /src=(?:"|')?([^"' >]+)(?:"|')?/i
 }
 
+var res_file_pattern = 'jpg,png,gif,bmp,jpeg,ico,eot,svg,ttf,woff,woff2';
+
 /**
  * 渲染页面
  * @param  {string} filepath 页面路径
@@ -253,7 +255,11 @@ function getPageData (absolute_path, config) {
   var layout_path = path.join(config.dir._layout, layout + '.html');
 
   if (fs.existsSync(layout_path)) {
-    data.layout = getLayoutData(layout_path, config);
+    if (config._deploy && config._deploy.layout && config._deploy.layout[layout_path]) {
+      data.layout = config._deploy.layout[layout_path];
+    } else {
+      data.layout = getLayoutData(layout_path, config);
+    }
   } else {
     data.layout = false;
   }
@@ -317,7 +323,7 @@ function getStyleData (content, config, page_path) {
     // data.content = content.replace(relative_path, setUrlRootParam(absolute_path, config));
 
     var uri = '';
-    if (config._deploy) {
+    if (config._deploy && config._deploy.style && config._deploy.style[absolute_path]) {
       uri = '{$_root$}' + config._deploy.style[absolute_path].uri;
     } else {
       uri = setUrlRootParam(absolute_path, config);
@@ -351,9 +357,15 @@ function getScriptData (content, config, page_path) {
       absolute_path = relative_path;
       data.content = content;
     } else {
+    var uri = '';
       absolute_path = data.path = path.join(page_path, relative_path);
+      if (config._deploy && config._deploy.script && config._deploy.script[absolute_path]) {
+        uri = '{$_root$}' + config._deploy.script[absolute_path].uri;
+      } else {
+        uri = setUrlRootParam(absolute_path, config);
+      }
       // data.content = content.replace(relative_path, setUrlRootParam(absolute_path, config));
-      data.content = '<script src="' + setUrlRootParam(absolute_path, config) + '"></script>';
+      data.content = '<script src="' + uri + '"></script>';
     }
     data.id = getHash(absolute_path);
 
@@ -476,6 +488,19 @@ function deploy (config) {
     script: {}
   };
 
+  // res
+  console.log(chalk.yellow('> res file:'));
+  var res_pattern = '{' + config.dir._common + ',' + config.dir._module + ',' + config.dir._component + ',' + config.dir._lib + '}/**/!(_*).{' + res_file_pattern + '}';
+  var res_files = glob.sync(res_pattern, {});
+  res_files.forEach(function (item) {
+    item = path.join(item);
+    var output_path = getDeployPath(item, config);
+    var uri = output_path.replace(config.dir._deploy, '').replace(/\\/ig, '/');
+
+    fsEx.copySync(item, output_path);
+    console.log(chalk.gray('  ' + uri), chalk.blue(' -> '), chalk.green('done'));
+  });
+
   // script
   console.log(chalk.yellow('> script file:'));
   var js_pattern = '{' + config.dir._common + ',' + config.dir._module + ',' + config.dir._component + ',' + config.dir._lib + '}/**/!(_*).js';
@@ -511,7 +536,15 @@ function deploy (config) {
   var html_pattern = config.dir._module + '/**/!(_*).html';
   var html_files = glob.sync(html_pattern, {});
   html_files.forEach(function (item) {
-    console.log(item)
+    item = path.join(item);
+    var output_path = getDeployPath(item, config);
+    var uri = output_path.replace(config.dir._deploy, '').replace(/\\/ig, '/');
+
+    var page_data = getPageData(item, config);
+    var page_content = getPageContent(page_data, config);
+
+    fsEx.outputFileSync(output_path, page_content);
+    console.log(chalk.gray('  ' + uri), chalk.blue(' -> '), chalk.green('done'));
   });
     // console.log(config._deploy);
 };
