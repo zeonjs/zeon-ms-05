@@ -345,11 +345,17 @@ function getScriptData (content, config, page_path) {
     data.is_external = true;
 
     var relative_path = content.match(reg.jsPath)[1];
-    var absolute_path = data.path = path.join(page_path, relative_path);
+    var absolute_path = '';
 
+    if (relative_path.indexOf('http') == 0) {
+      absolute_path = relative_path;
+      data.content = content;
+    } else {
+      absolute_path = data.path = path.join(page_path, relative_path);
+      // data.content = content.replace(relative_path, setUrlRootParam(absolute_path, config));
+      data.content = '<script src="' + setUrlRootParam(absolute_path, config) + '"></script>';
+    }
     data.id = getHash(absolute_path);
-    // data.content = content.replace(relative_path, setUrlRootParam(absolute_path, config));
-    data.content = '<script src="' + setUrlRootParam(absolute_path, config) + '"></script>';
 
   } else {
     data.is_external = false;
