@@ -102,10 +102,12 @@ function getPageContent (data, config) {
   page_relative_path == '' ? page_relative_path = '.' : null;
   page_relative_path = page_relative_path.replace(/\\/ig, '/');
 
+  var locals = {
+    _root: page_relative_path
+  };
+  locals = _.assign(data.data, locals);
   var content = swig.render(temp, {
-    locals: {
-      _root: page_relative_path
-    },
+    locals: locals,
     filename: path.join(config.dir._root, encodeURIComponent(data.path))
   });
 
@@ -226,6 +228,7 @@ function getPartialData (absolute_path, config) {
 function getPageData (absolute_path, config) {
   var data = {
     id: absolute_path,
+    data: {},
     path: absolute_path,
     layout: null,
     js: [],
@@ -240,7 +243,7 @@ function getPageData (absolute_path, config) {
   var file_content = fs.readFileSync(absolute_path, 'utf8');
 
   // layout
-  var page_data = fm.parse(file_content);
+  var page_data = data.data = fm.parse(file_content) || {};
   var temp = data._content = page_data._content;
 
   // layout
