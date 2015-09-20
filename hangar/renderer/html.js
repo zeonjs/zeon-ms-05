@@ -102,8 +102,12 @@ function getPageContent (data, config) {
   page_relative_path == '' ? page_relative_path = '.' : null;
   page_relative_path = page_relative_path.replace(/\\/ig, '/');
 
+  var uri = data.path.replace(config.dir._module, '');
+  uri = uri.replace(/\\/ig, '/');
+
   var locals = {
-    _root: page_relative_path
+    _root: page_relative_path,
+    _uri: uri
   };
   locals = _.assign(data.data, locals);
   var content = swig.render(temp, {
