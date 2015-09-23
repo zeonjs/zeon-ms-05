@@ -557,12 +557,17 @@ function deploy (config) {
 };
 exports.deploy = deploy;
 
-// var UglifyJS = require("uglify-js");
+var UglifyJS = require("uglify-js");
 function deployScript (absolute_path, config) {
-  // var result = UglifyJS.minify(absolute_path);
-  // var hash = getHash(result.code);
-  var result = fs.readFileSync(absolute_path, 'utf8');
-  var hash = getHash(result).substr(0,5);
+  // console.log(chalk.gray('  ' + absolute_path));
+  var result;
+  var hash;
+  if (/*/\.min\.js$/i.test(absolute_path)*/ false) {
+    result = fs.readFileSync(absolute_path, 'utf8');
+  } else {
+    result = UglifyJS.minify(absolute_path).code;
+  }
+  hash = getHash(result).substr(0,5);
 
   var output_path = getDeployPath(absolute_path, config);
   var output_parse = path.parse(output_path);
