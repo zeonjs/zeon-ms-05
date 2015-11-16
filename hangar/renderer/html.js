@@ -89,6 +89,14 @@ function getPageContent (data, config) {
   temp += data.content;
   temp += '{% endblock %}\n';
 
+  // img
+  temp = temp.replace(reg.img, function () {
+    var relative_path = arguments[0].match(reg.imgPath)[1];
+    var absolute_path = fsHelper.getFilepath(relative_path, config, path.join(path_parse.dir));
+    var path_with_root = setUrlRootParam(absolute_path, config);
+    return path_with_root ? arguments[0].replace(relative_path, path_with_root) : arguments[0] ;
+  });
+
   // swig render
   var layout_code = path.join(config.dir._root, encodeURIComponent(data.layout.id));
   temp = '{% extends "' + layout_code + '" %}\n' + temp;
@@ -360,7 +368,7 @@ function getScriptData (content, config, page_path) {
     var relative_path = content.match(reg.jsPath)[1];
     var absolute_path = '';
 
-    if (relative_path.indexOf('http') == 0) {
+    if (relative_path.indexOf('http') == 0 || relative_path.indexOf('//') == 0) {
       absolute_path = relative_path;
       data.content = content;
     } else {
@@ -543,6 +551,7 @@ function deploy (config) {
   var html_pattern = config.dir._module + '/**/!(_*).html';
   var html_files = glob.sync(html_pattern, {});
   html_files.forEach(function (item) {
+    console.log(chalk.gray('  ' + item));
     item = path.join(item);
     var output_path = getDeployPath(item, config);
     var uri = output_path.replace(config.dir._deploy, '').replace(/\\/ig, '/');
@@ -562,10 +571,12 @@ function deployScript (absolute_path, config) {
   // console.log(chalk.gray('  ' + absolute_path));
   var result;
   var hash;
-  if (/*/\.min\.js$/i.test(absolute_path)*/ false) {
+  if (/*/\.min\.js$/i.test(absolute_path)*/ true) {
     result = fs.readFileSync(absolute_path, 'utf8');
   } else {
-    result = UglifyJS.minify(absolute_path).code;
+    result = UglifyJS.minify(absolute_path, {
+      mangle: false
+    }).code;
   }
   hash = getHash(result).substr(0,5);
 
@@ -603,9 +614,9 @@ function deployStyle (absolute_path, config) {
     result = result.css.toString('utf-8')
     absolute_path = absolute_path.replace(/\.scss$/i, '.css')
   }
-  result = new CleanCSS({
-    keepSpecialComments: 0
-  }).minify(result).styles;
+  // result = new CleanCSS({
+  //   keepSpecialComments: 0
+  // }).minify(result).styles;
 
   var hash = getHash(result).substr(0,5);
 
