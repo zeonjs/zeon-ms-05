@@ -562,7 +562,19 @@ function deploy (config) {
     fsEx.outputFileSync(output_path, page_content);
     console.log(chalk.gray('  ' + uri), chalk.blue(' -> '), chalk.green('done'));
   });
-    // console.log(config._deploy);
+
+  // component
+  var chtml_pattern = config.dir._component + '/**/!(_*).html';
+  var chtml_files = glob.sync(chtml_pattern, {});
+  chtml_files.forEach(function (item) {
+    console.log(chalk.gray('  ' + item));
+    item = path.join(item);
+    var output_path = getDeployPath(item, config);
+    var uri = output_path.replace(config.dir._deploy, '').replace(/\\/ig, '/');
+
+    fsEx.copySync(item, output_path);
+    console.log(chalk.gray('  ' + uri), chalk.blue(' -> '), chalk.green('done'));
+  });
 };
 exports.deploy = deploy;
 
@@ -571,12 +583,16 @@ function deployScript (absolute_path, config) {
   // console.log(chalk.gray('  ' + absolute_path));
   var result;
   var hash;
-  if (/*/\.min\.js$/i.test(absolute_path)*/ true) {
+  if (/\.min\.js$/i.test(absolute_path)) {
     result = fs.readFileSync(absolute_path, 'utf8');
   } else {
-    result = UglifyJS.minify(absolute_path, {
-      mangle: false
-    }).code;
+    try {
+      result = UglifyJS.minify(absolute_path, {
+        mangle: false
+      }).code;
+    } catch (ex) {
+      console.log(absolute_path);
+    }
   }
   hash = getHash(result).substr(0,5);
 
@@ -614,9 +630,9 @@ function deployStyle (absolute_path, config) {
     result = result.css.toString('utf-8')
     absolute_path = absolute_path.replace(/\.scss$/i, '.css')
   }
-  // result = new CleanCSS({
-  //   keepSpecialComments: 0
-  // }).minify(result).styles;
+  result = new CleanCSS({
+    keepSpecialComments: 0
+  }).minify(result).styles;
 
   var hash = getHash(result).substr(0,5);
 
