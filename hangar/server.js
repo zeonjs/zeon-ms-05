@@ -2,6 +2,7 @@
 
 var path = require('path');
 var fs = require('fs');
+var i18n = require('./i18n');
 var fsHelper = require('./helper/file');
 
 var sass = (function () {
@@ -31,6 +32,7 @@ exports = module.exports = function (config) {
   config.dir._lib = path.join(config.dir._root, config.dir.lib);
   config.dir._component = path.join(config.dir._root, config.dir.component);
   config.dir._layout = path.join(config.dir._root, config.dir.layout);
+  config.dir._lang = path.join(config.dir._root, config.dir.lang);
 
   // set URI test
   if (config.dir && config.dir.lib)
@@ -42,21 +44,30 @@ exports = module.exports = function (config) {
 
     var extname = path.extname(pathname).toLocaleLowerCase();
     var filepath = '';
+    var opt = {
+      base_dir: baseDir,
+      user_option: config
+    };
 
     // html
     if (extname === '.html') {
       // module page
       filepath = path.join(config.dir._module, pathname);
-
       if (fs.existsSync(filepath))
-        return require('./renderer/html').call({
-          base_dir: baseDir,
-          user_option: config
-        }, filepath);
-
+        var content = require('./renderer/html').call(opt, filepath);
+        return i18n.call(opt, content);
       // tmpl page
       filepath = path.join(config.dir._common, pathname);
-      if (fs.existsSync(filepath)) return filepath;
+      if (fs.existsSync(filepath)) {
+        return i18n.read.call(opt, filepath);
+      }
+    }
+    // js
+    else if (extname === '.js') {
+      filepath = fsHelper.getFilepath(pathname, config);
+      if (filepath.indexOf('\\lib\\') == -1 && fs.existsSync(filepath)) {
+        return i18n.read.call(opt, filepath);
+      }
     }
     // css
     else if (extname === '.css') {
@@ -87,9 +98,6 @@ exports = module.exports = function (config) {
         return css_content;
       }
     }
-    // js
-    // else if (EXTNAME.js.test(extname)) {
-    // }
     else {
     }
 

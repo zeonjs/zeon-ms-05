@@ -12,9 +12,11 @@ var glob     = require('glob');
 var chalk    = require('chalk');
 var fm       = require('zeon-front-matter');
 var fsHelper = require('../helper/file');
+var i18n = require('../i18n');
 
 swig.setDefaults({ varControls: ['{$', '$}'] });
 
+var opt = {};
 var reg = {
   // section
   section: /(<!--\[section (\S+?)\]\[\/section\]-->)|(<!--\[section (\S+?)\]-->[\s\S]*?<!--\[\/section\]-->)/ig,
@@ -49,6 +51,7 @@ var res_file_pattern = 'jpg,png,gif,bmp,jpeg,ico,eot,svg,ttf,woff,woff2';
 var renderHTML = function (filepath) {
   var baseDir = this.base_dir || '';
   var config = this.user_option || {};
+  opt = this;
 
   var d = getPageData(filepath, config);
 
@@ -142,8 +145,7 @@ function getLayoutData (absolute_path, config) {
   var path_parse = path.parse(absolute_path);
 
   // read file content
-  var temp = data.template = data._content = fs.readFileSync(absolute_path, 'utf8');
-
+  var temp = data.template = data._content = i18n.call(opt, fs.readFileSync(absolute_path, 'utf8'));
 
   // 替换section节点为swig block
   data.template = data.template.replace(reg.section, function () {
@@ -196,7 +198,7 @@ function getPartialData (absolute_path, config) {
   var path_parse = path.parse(absolute_path);
 
   // read file content
-  var temp = data._content = fs.readFileSync(absolute_path, 'utf8');
+  var temp = data._content = i18n.call(opt, fs.readFileSync(absolute_path, 'utf8'));
 
   // css
   temp = temp.replace(reg.css, function () {
@@ -252,7 +254,8 @@ function getPageData (absolute_path, config) {
   var path_parse = path.parse(absolute_path);
 
   // read file content
-  var file_content = fs.readFileSync(absolute_path, 'utf8');
+  var file_content = i18n.call(opt, fs.readFileSync(absolute_path, 'utf8'));
+  var file_content = i18n.call(opt, fs.readFileSync(absolute_path, 'utf8'));
 
   // layout
   var page_data = data.data = fm.parse(file_content) || {};
@@ -490,6 +493,9 @@ function getHash (data) {
 
 // --- deploy -----------------------------------------------------------
 function deploy (config) {
+  opt = {
+    'user_option': config
+  };
   // init deploy
   if (fs.existsSync(config.dir._deploy)) {
     fsEx.removeSync(config.dir._deploy);
