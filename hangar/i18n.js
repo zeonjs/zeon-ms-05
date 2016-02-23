@@ -39,6 +39,9 @@ var walk = function (uri, list) {
 };
 
 var getContent = function (content) {
+
+  // if (!content) { return ''; }
+
   var self = this;
   var type = self.user_option.lang;
   var lang = getLang.call(this, type);
@@ -51,6 +54,7 @@ var getContent = function (content) {
 
 var readContent = function (url) {
   var self = this;
+
   if (fs.existsSync(url)) {
     return getContent.call(self, fs.readFileSync(url, 'utf8'));
   } else {

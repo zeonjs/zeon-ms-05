@@ -1,6 +1,6 @@
 {
   "name": "zeon-ms-05",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "description": "MS-05 Zaku",
   "main": "zaku.js",
   "scripts": {

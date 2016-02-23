@@ -51,16 +51,26 @@ exports = module.exports = function (config) {
 
     // html
     if (extname === '.html') {
+
       // module page
       filepath = path.join(config.dir._module, pathname);
-      if (fs.existsSync(filepath))
+      if (fs.existsSync(filepath)) {
         var content = require('./renderer/html').call(opt, filepath);
         return i18n.call(opt, content);
+      }
+
       // tmpl page
       filepath = path.join(config.dir._common, pathname);
       if (fs.existsSync(filepath)) {
         return i18n.read.call(opt, filepath);
       }
+
+      // other page
+      filepath = path.join(config.dir._root, pathname);
+      if (fs.existsSync(filepath)) {
+        return i18n.read.call(opt, filepath);
+      }
+
     }
     // js
     else if (extname === '.js') {
