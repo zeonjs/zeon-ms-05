@@ -32,6 +32,7 @@ exports = module.exports = function (config) {
   config.dir._component = path.join(config.dir._root, config.dir.component);
   config.dir._layout    = path.join(config.dir._root, config.dir.layout);
   config.dir._deploy    = path.join(config.dir._root, config.dir.deploy);
+  config.dir._lang      = path.join(config.dir._root, config.dir.lang);
 
-  require('./renderer/html').deploy(config);
+  require('./renderer/html').deploy(baseDir, config);
 };

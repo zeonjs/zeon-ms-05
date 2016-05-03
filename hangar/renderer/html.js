@@ -255,7 +255,6 @@ function getPageData (absolute_path, config) {
 
   // read file content
   var file_content = i18n.call(opt, fs.readFileSync(absolute_path, 'utf8'));
-  var file_content = i18n.call(opt, fs.readFileSync(absolute_path, 'utf8'));
 
   // layout
   var page_data = data.data = fm.parse(file_content) || {};
@@ -492,8 +491,9 @@ function getHash (data) {
 }
 
 // --- deploy -----------------------------------------------------------
-function deploy (config) {
+function deploy (baseDir, config) {
   opt = {
+    'base_dir': baseDir,
     'user_option': config
   };
   // init deploy
